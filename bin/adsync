@@ -22,8 +22,10 @@ require 'progress_bar'
 require 'yaml'
 require 'open3'
 
+require_relative '../lib/version.rb'
+
 # adsync CLI
-class AdSync < Thor
+class AdSyncCli < Thor
   desc 'sync', 'sync files from all sources'
   method_option :yes, type: :boolean, aliases: '-y', default: false
   def sync
@@ -41,6 +43,11 @@ class AdSync < Thor
   desc 'config', 'display sync config'
   def config
     puts load_config
+  end
+
+  desc 'version', 'display async version'
+  def version
+    puts AdSync::VERSION
   end
 
   no_commands do
@@ -84,4 +91,4 @@ class AdSync < Thor
   end
 end
 
-AdSync.start(ARGV)
+AdSyncCli.start(ARGV)

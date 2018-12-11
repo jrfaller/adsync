@@ -15,16 +15,18 @@
 #
 # Copyright 2018 Jean-Rémy Falleri <jr.falleri@gmail.com>
 
+require_relative 'lib/version.rb'
+
 Gem::Specification.new do |spec|
   spec.name = 'adsync'
-  spec.version = '0.0.1'
+  spec.version = AdSync::VERSION
   spec.summary = 'Android Directory Synchronizer.'
   spec.authors = ['Jean-Rémy Falleri']
   spec.email = 'jr.falleri@gmail.com'
   spec.homepage = 'https://github.com/jrfaller/adsync'
   spec.licenses = 'GPL-3.0'
   spec.description = 'Android Directory Synchronizer.'
-  spec.files = ['README.md', 'LICENSE', 'bin/adsync']
+  spec.files = ['README.md', 'LICENSE', 'bin/adsync'] + Dir['lib/**/*.rb']
   spec.executables << 'adsync'
   spec.bindir = 'bin'
   spec.required_ruby_version = '~> 2.4'
