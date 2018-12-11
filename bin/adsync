@@ -29,47 +29,58 @@ class AdSyncCli < Thor
   desc 'sync', 'sync files from all sources'
   method_option :yes, type: :boolean, aliases: '-y', default: false
   def sync
-    sources = load_config
+    sources = load_current_config
     sources.each_value do |folders|
-      copy(folders[0], folders[1], options[:yes])
+      copy(folders[0], make_absolute(folders[1]), options[:yes])
     end
   end
 
-  desc 'id', 'display id of the device'
+  desc 'id', 'display id of the current usb device'
   def id
     puts read_id
   end
 
-  desc 'config', 'display sync config'
+  desc 'config', 'display adsync config'
   def config
-    puts load_config
+    puts load_config.to_yaml
   end
 
-  desc 'version', 'display async version'
+  desc 'version', 'display adsync version'
   def version
     puts AdSync::VERSION
   end
 
   no_commands do
     def copy(distant_folder, local_folder, confirm)
-      absolute_local_folder = "#{ENV['HOME']}/#{local_folder}"
-      raise "Can not read local folder #{absolute_local_folder}" unless File.exist?(absolute_local_folder)
-
-      out, err, info = Open3.capture3('adb', '-d', 'shell', 'ls', distant_folder)
-      raise "Error executing adb: #{err}" unless info.success?
-
-      distant_files = `adb -d ls "#{distant_folder}" | cut -c 28-`.split - ['.', '..']
-      local_files = Dir.entries(absolute_local_folder) - ['.', '..']
-      unique_distant_files = (distant_files - local_files)
-      puts "copying #{unique_distant_files.size} files from #{distant_folder} to #{absolute_local_folder}"
+      check_copy_folders(distant_folder, local_folder)
+      unique_distant_files = compute_unique_files(distant_folder, local_folder)
+      puts "copying #{unique_distant_files.size} files from #{distant_folder} to #{local_folder}"
       return unless confirm
 
       bar = ProgressBar.new(unique_distant_files.size)
       unique_distant_files.each do |file|
-        out, err, info = Open3.capture3('adb', '-d', 'pull', "#{distant_folder}#{file}", absolute_local_folder)
+        out, err, info = Open3.capture3('adb', '-d', 'pull', "#{distant_folder}#{file}", local_folder)
         puts "Error executing adb: #{err}" unless info.success?
         bar.increment!
       end
+    end
+
+    def compute_unique_files(distant_folder, local_folder)
+      distant_files = `adb -d ls "#{distant_folder}" | cut -c 28-`.split - ['.', '..']
+      local_files = Dir.entries(absolute_local_folder) - ['.', '..']
+      unique_distant_files = (distant_files - local_files)
+      unique_distant_files
+    end
+
+    def check_copy_folders(distant_folder, local_folder)
+      raise "Local folder #{local_folder} not found" unless File.exist?(local_folder)
+      raise "Local folder #{local_folder} is not a directory" unless Dir.directory?(local_folder)
+      out, err, info = Open3.capture3('adb', '-d', 'shell', 'ls', distant_folder)
+      raise "Error executing adb: #{err}" unless info.success?
+    end
+
+    def make_absolute(local_folder)
+      "#{ENV['HOME']}/#{local_folder}"
     end
 
     def read_id
@@ -79,14 +90,18 @@ class AdSyncCli < Thor
       out.strip
     end
 
-    def load_config
-      raise 'No configuration file' unless File.exist?("#{ENV['HOME']}/.adsync")
-
-      config = YAML.load_file("#{ENV['HOME']}/.adsync")
+    def load_current_config
+      config = load_config
       id = read_id
       raise "No configuration for device #{id}" unless config.key?(id)
 
       config[id]
+    end 
+
+    def load_config
+      raise 'No configuration file' unless File.exist?("#{ENV['HOME']}/.adsync")
+
+      config = YAML.load_file("#{ENV['HOME']}/.adsync")
     end
   end
 end
