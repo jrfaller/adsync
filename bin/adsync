@@ -50,7 +50,7 @@ class AdSyncCli < Thor
     puts AdSync::VERSION
   end
 
-  no_commands do
+  no_commands do # rubocop:disable Metrics/BlockLength
     def copy(distant_folder, local_folder, confirm)
       check_copy_folders(distant_folder, local_folder)
       unique_distant_files = compute_unique_files(distant_folder, local_folder)
@@ -59,7 +59,7 @@ class AdSyncCli < Thor
 
       bar = ProgressBar.new(unique_distant_files.size)
       unique_distant_files.each do |file|
-        out, err, info = Open3.capture3('adb', '-d', 'pull', "#{distant_folder}#{file}", local_folder)
+        _out, err, info = Open3.capture3('adb', '-d', 'pull', "#{distant_folder}#{file}", local_folder)
         puts "Error executing adb: #{err}" unless info.success?
         bar.increment!
       end
@@ -67,7 +67,7 @@ class AdSyncCli < Thor
 
     def compute_unique_files(distant_folder, local_folder)
       distant_files = `adb -d ls "#{distant_folder}" | cut -c 28-`.split - ['.', '..']
-      local_files = Dir.entries(absolute_local_folder) - ['.', '..']
+      local_files = Dir.entries(local_folder) - ['.', '..']
       unique_distant_files = (distant_files - local_files)
       unique_distant_files
     end
@@ -75,7 +75,8 @@ class AdSyncCli < Thor
     def check_copy_folders(distant_folder, local_folder)
       raise "Local folder #{local_folder} not found" unless File.exist?(local_folder)
       raise "Local folder #{local_folder} is not a directory" unless Dir.directory?(local_folder)
-      out, err, info = Open3.capture3('adb', '-d', 'shell', 'ls', distant_folder)
+
+      _out, err, info = Open3.capture3('adb', '-d', 'shell', 'ls', distant_folder)
       raise "Error executing adb: #{err}" unless info.success?
     end
 
@@ -96,12 +97,12 @@ class AdSyncCli < Thor
       raise "No configuration for device #{id}" unless config.key?(id)
 
       config[id]
-    end 
+    end
 
     def load_config
       raise 'No configuration file' unless File.exist?("#{ENV['HOME']}/.adsync")
 
-      config = YAML.load_file("#{ENV['HOME']}/.adsync")
+      YAML.load_file("#{ENV['HOME']}/.adsync")
     end
   end
 end
