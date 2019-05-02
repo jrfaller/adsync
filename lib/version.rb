@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with adsync.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2018 Jean-Rémy Falleri <jr.falleri@gmail.com>
+# Copyright 2018 Jean-Remy Falleri <jr.falleri@gmail.com>
 
 module AdSync
   VERSION = '0.0.1'.freeze

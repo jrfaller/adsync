@@ -13,13 +13,16 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with adsync.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright 2018 Jean-Rémy Falleri <jr.falleri@gmail.com>
+# Copyright 2018 Jean-Remy Falleri <jr.falleri@gmail.com>
 
 begin
   require 'rubocop/rake_task'
   require 'bundler/gem_tasks'
+  require 'rake/clean'
+
+  CLEAN.include '*.gem', 'pkg'
 
   RuboCop::RakeTask.new(:rubocop)
 
-  task default: %i[rubocop]
+  task default: %i[rubocop build]
 end
