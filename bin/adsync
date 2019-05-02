@@ -24,7 +24,24 @@ require 'open3'
 
 require_relative '../lib/version.rb'
 
-# adsync CLI
+# The AdSync CLI class.
+# It requires a configuration file in +$HOME/.adsync+. The file should contains
+# a YAML configuration of the follinwg format :
+#
+#   PHONE_ID:
+#     RULE_ID:
+#     - PHONE_FOLDER
+#     - COMPUTER_FOLDER
+#
+# such as :
+#
+#   XZ1GAS3770221012:
+#     phone_pictures:
+#     - storage/self/primary/DCIM/Camera/
+#     - Pictures/photos/Camera/
+#     sd_pictures:
+#     - storage/43EE-1500/DCIM/Camera/
+#     - Pictures/photos/Camera/
 class AdSyncCli < Thor
   desc 'sync', 'sync files from all sources'
   method_option :yes, type: :boolean, aliases: '-y', default: false
