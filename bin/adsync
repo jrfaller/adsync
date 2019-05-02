@@ -91,7 +91,7 @@ class AdSyncCli < Thor
 
     def check_copy_folders(distant_folder, local_folder)
       raise "Local folder #{local_folder} not found" unless File.exist?(local_folder)
-      raise "Local folder #{local_folder} is not a directory" unless Dir.directory?(local_folder)
+      raise "Local folder #{local_folder} is not a directory" unless Dir.exist?(local_folder)
 
       _out, err, info = Open3.capture3('adb', '-d', 'shell', 'ls', distant_folder)
       raise "Error executing adb: #{err}" unless info.success?
