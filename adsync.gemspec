@@ -33,6 +33,6 @@ Gem::Specification.new do |spec|
   spec.add_runtime_dependency 'progress_bar', '~> 1'
   spec.add_runtime_dependency 'thor', '~> 0'
   spec.add_development_dependency 'pry', '~> 0'
-  spec.add_development_dependency 'rake', '~> 11'
+  spec.add_development_dependency 'rake', '~> 12'
   spec.add_development_dependency 'rubocop', '~> 0', '>= 0.49.0'
 end
