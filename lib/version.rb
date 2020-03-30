@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This file is part of adsync.
 #
 # adsync is free software: you can redistribute it and/or modify
@@ -16,5 +18,5 @@
 # Copyright 2018 Jean-Remy Falleri <jr.falleri@gmail.com>
 
 module AdSync
-  VERSION = '0.0.1'.freeze
+  VERSION = '0.0.1'
 end
