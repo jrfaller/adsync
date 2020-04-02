@@ -44,12 +44,13 @@ require_relative '../lib/version.rb'
 #     - storage/43EE-1500/DCIM/Camera/
 #     - Pictures/photos/Camera/
 class AdSyncCli < Thor
-  desc 'sync', 'sync files from all sources'
+  desc 'sync', 'sync files'
   method_option :yes, type: :boolean, aliases: '-y', default: false
+  method_option :verbose, type: :boolean, aliases: '-v', default: false
   def sync
     sources = load_current_config
     sources.each_value do |folders|
-      copy(folders[0], make_absolute(folders[1]), options[:yes])
+      copy(folders[0], make_absolute(folders[1]), options[:verbose], options[:yes])
     end
   end
 
@@ -69,10 +70,11 @@ class AdSyncCli < Thor
   end
 
   no_commands do # rubocop:disable Metrics/BlockLength
-    def copy(distant_folder, local_folder, confirm)
+    def copy(distant_folder, local_folder, verbose, confirm)
       check_copy_folders(distant_folder, local_folder)
       unique_distant_files = compute_unique_files(distant_folder, local_folder)
       puts "copying #{unique_distant_files.size} files from #{distant_folder} to #{local_folder}"
+      unique_distant_files.each { |f| puts "\t#{f}" } if verbose
       return unless confirm
 
       bar = ProgressBar.new(unique_distant_files.size)
