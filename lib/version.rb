@@ -18,5 +18,5 @@
 # Copyright 2018 Jean-Remy Falleri <jr.falleri@gmail.com>
 
 module AdSync
-  VERSION = '0.0.1'
+  VERSION = '0.0.2'
 end
