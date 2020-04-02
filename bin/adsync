@@ -64,6 +64,31 @@ class AdSyncCli < Thor
     puts load_config.to_yaml
   end
 
+  desc 'doctor', 'check installation for errors'
+  def doctor
+    puts 'Loading configuration:'
+    config = load_config
+    puts 'OK'
+    puts ''
+    puts 'Checking configuration folders:'
+    config.each do |_device, backups|
+      backups.each do |_name, folders|
+        local_folder = make_absolute(folders[1])
+        puts "Error with folder #{local_folder}" unless File.exist?(local_folder) && Dir.exist?(local_folder)
+      end
+    end
+    puts ''
+    puts 'Executing adb:'
+    out, err, info = Open3.capture3('adb', '--version')
+    if info.success? 
+      puts "OK: #{out}"
+    else
+      puts "Error: #{err}"
+    end
+    rescue StandardError => e
+      puts "Error: #{e}"
+  end
+
   desc 'version', 'display adsync version'
   def version
     puts AdSync::VERSION
@@ -114,13 +139,13 @@ class AdSyncCli < Thor
     def load_current_config
       config = load_config
       id = read_id
-      raise "No configuration for device #{id}" unless config.key?(id)
+      raise "No configuration found for device #{id} in #{ENV['HOME']}/.adsync" unless config.key?(id)
 
       config[id]
     end
 
     def load_config
-      raise 'No configuration file' unless File.exist?("#{ENV['HOME']}/.adsync")
+      raise "No configuration file found at #{ENV['HOME']}/.adsync" unless File.exist?("#{ENV['HOME']}/.adsync")
 
       YAML.load_file("#{ENV['HOME']}/.adsync")
     end
