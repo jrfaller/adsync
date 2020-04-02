@@ -27,4 +27,5 @@ A backup configuration is given for each device. It is a list of named backup it
 * `adsync config`: displays the current configuration (.located in `$HOME/.adsync`)
 * `adsync config`: displays the id of the currently connected device
 * `adsync version`: displays adsync's version
-* `adsync sync`: starts synchronization for the currently connected device (use the `-y` flag to actually synchronize)
+* `adsync sync`: starts synchronization for the currently connected device (use the `-y` flag to actually synchronize and `-v` to have the details of the file to be synchronized)
+* `adsync doctor`: check your adsync installation 
