@@ -4,6 +4,8 @@ An Android Directory Synchronizer
 
 ## Configuration
 
+To use AdSync, you need to have unlocked developer options, enabled USB debugging and accepted the computer where AdSync will run.
+
 AdSync needs a config file located in `$HOME/.adsync` and also the Android SDK tools installed and available in the path (most importantly `adb`). The YAML config file look like this:
 
 ```
