@@ -1,0 +1,211 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [
+#     "click",
+#     "pyyaml",
+#     "tqdm",
+# ]
+# ///
+
+import os
+import click
+from tqdm import tqdm
+import yaml
+import subprocess
+
+VERSION = "0.2.0"
+CONFIG_PATH = os.path.join(os.environ['HOME'], '.config', 'adsync')
+EXCLUDED_FILES = ['.', '..', 'thumbnails']
+
+
+@click.group()
+def cli():
+    """AdSync command-line interface."""
+    pass
+
+
+@cli.command()
+@click.option('--confirm', '-c', is_flag=True, help='Perform actual copy operations', default=False)
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output', default=False)
+def sync(confirm, verbose):
+    """Synchronize files from the connected device."""
+    try:
+        sources = load_current_config()
+        for folders in sources.values():
+            copy(folders[0], make_absolute(folders[1]), verbose, confirm)
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red')
+
+
+@cli.command()
+def status():
+    """Show synchronization status."""
+    try:
+        config = load_config()
+        device_id = read_id()
+        if device_id is None:
+            click.secho('No connected device', fg='red', bold=True)
+        else:
+            click.secho(f"Connected device: {device_id}", bold=True)
+        click.echo()
+
+        for device, device_config in config.items():
+            if device == device_id:
+                click.secho(device, fg='green', underline=True, bold=True)
+            else:
+                click.secho(device, fg='red', bold=True)
+
+            for name, folders in device_config.items():
+                if device == device_id:
+                    unique_count = copy_status(folders[0], make_absolute(folders[1]))
+                    if unique_count > 0:
+                        click.secho(f"  {name} ({unique_count})", fg='yellow', underline=True, bold=True)
+                    else:
+                        click.secho(f"  {name}", bold=True)
+                else:
+                    click.secho(f"  {name}", bold=True)
+                click.echo(f"    source: {folders[0]}")
+                click.echo(f"    target: {folders[1]}")
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red')
+
+
+@cli.command()
+def doctor():
+    """Diagnose configuration and environment issues."""
+    click.echo('Loading configuration:')
+    try:
+        config = load_config()
+        click.secho(f"OK: {CONFIG_PATH}", fg='green')
+    except Exception as e:
+        click.secho(f"KO: {e}", fg='red')
+        return
+
+    click.echo('\nChecking destination folders:')
+    for device, backups in config.items():
+        for name, folders in backups.items():
+            local_folder = make_absolute(folders[1])
+            if not os.path.exists(local_folder):
+                click.secho(f"KO: {local_folder} (missing folder)", fg='red')
+            elif not os.path.isdir(local_folder):
+                click.secho(f"KO: {local_folder} (Not a directory)", fg='red')
+            else:
+                click.secho(f"OK: {local_folder}", fg='green')
+
+    click.echo('\nChecking adb:')
+    try:
+        result = subprocess.run(['adb', '--version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            click.secho(f"OK\n{result.stdout}", fg='green')
+        else:
+            click.secho(f"KO: {result.stderr}", fg='red')
+    except Exception as e:
+        click.secho(f"KO: {e}", fg='red')
+
+
+@cli.command()
+def version():
+    """Display AdSync version."""
+    click.echo(VERSION)
+
+
+# Helper functions
+def copy(distant_folder, local_folder, verbose, confirm):
+    try:
+        check_copy_folders(distant_folder, local_folder)
+    except Exception as e:
+        click.secho(f"Error: {e}", fg='red')
+        return
+
+    unique_files = compute_unique_distant_files(distant_folder, local_folder)
+    click.echo(f"Copying {len(unique_files)} files from {distant_folder} to {local_folder}")
+    if verbose:
+        for f in unique_files:
+            click.echo(f"\t{f}")
+
+    if confirm and unique_files:
+        with tqdm(total=len(unique_files), desc='Copying') as bar:
+            for file in unique_files:
+                result = subprocess.run(
+                    ['adb', '-d', 'pull', f"{distant_folder}{file}", local_folder],
+                    capture_output=True, text=True
+                )
+                if result.returncode != 0:
+                    click.secho(f"Error: {result.stderr}", fg='red')
+                bar.update(1)
+
+
+def copy_status(distant_folder, local_folder):
+    try:
+        check_copy_folders(distant_folder, local_folder)
+        unique_files = compute_unique_distant_files(distant_folder, local_folder)
+        return len(unique_files)
+    except Exception:
+        return 0
+
+
+def compute_unique_distant_files(distant_folder, local_folder):
+    try:
+        result = subprocess.run(
+            ['adb', '-d', 'shell', 'ls', distant_folder],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            return []
+
+        distant_files = result.stdout.strip().split()
+        distant_files = [f for f in distant_files if f not in EXCLUDED_FILES]
+        local_files = os.listdir(local_folder)
+        return list(set(distant_files) - set(local_files))
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        return []
+
+
+def check_copy_folders(distant_folder, local_folder):
+    if not os.path.exists(local_folder):
+        raise Exception(f"Local folder {local_folder} does not exist")
+    if not os.path.isdir(local_folder):
+        raise Exception(f"Local folder {local_folder} is not a directory")
+
+    result = subprocess.run(
+        ['adb', '-d', 'shell', 'ls', distant_folder],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise Exception(f"Distant folder error: {result.stderr}")
+
+
+def make_absolute(local_folder):
+    return os.path.join(os.environ['HOME'], local_folder)
+
+
+def read_id():
+    result = subprocess.run(
+        ['adb', '-d', 'get-serialno'],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip()
+
+
+def load_current_config():
+    config = load_config()
+    device_id = read_id()
+    if device_id is None:
+        raise Exception("No device connected")
+    if device_id not in config:
+        raise Exception(f"No config for device {device_id}")
+    return config[device_id]
+
+
+def load_config():
+    if not os.path.exists(CONFIG_PATH):
+        raise Exception(f"Config file missing: {CONFIG_PATH}")
+    with open(CONFIG_PATH, 'r') as f:
+        return yaml.safe_load(f)
+
+
+if __name__ == '__main__':
+    cli()
